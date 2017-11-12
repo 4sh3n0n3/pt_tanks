@@ -130,12 +130,16 @@ def draw_hud(screen):
     screen.blit(surf_3, surf_3_rect)
 
 
-while go:
+def render_all():
     land.render()
     tank1.render()
     tank2.render()
     draw_hud(screen)
     pygame.display.flip()
+
+
+while go:
+    render_all()
     pygame.event.pump()
     sock.setblocking(0)
     pressed_list = pygame.key.get_pressed()
@@ -145,20 +149,26 @@ while go:
     if player.tank == active_tank:
         if pressed_list[pygame.K_w]:
             active_tank.angle += 1
+            if active_tank.angle == 361:
+                active_tank.angle = 1
             sock.send(str(actions.ANGLE_UP.value).encode('utf8'))
             sleep(0.05)
         elif pressed_list[pygame.K_s]:
             active_tank.angle -= 1
+            if active_tank.angle == -1:
+                active_tank.angle = 359
             sock.send(str(actions.ANGLE_DOWN.value).encode('utf8'))
             sleep(0.05)
         elif pressed_list[pygame.K_a]:
-            active_tank.power += 1
-            sock.send(str(actions.POWER_UP.value).encode('utf8'))
-            sleep(0.05)
+            if active_tank.power < 100:
+                active_tank.power += 1
+                sock.send(str(actions.POWER_UP.value).encode('utf8'))
+                sleep(0.05)
         elif pressed_list[pygame.K_d]:
-            active_tank.power -= 1
-            sock.send(str(actions.POWER_DOWN.value).encode('utf8'))
-            sleep(0.05)
+            if active_tank.power > 0:
+                active_tank.power -= 1
+                sock.send(str(actions.POWER_DOWN.value).encode('utf8'))
+                sleep(0.05)
         elif pressed_list[pygame.K_SPACE]:
             sock.send(str(actions.SHOOT.value).encode('utf8'))
             if active_tank == tank1:
@@ -175,22 +185,14 @@ while go:
             for i in range(0, 30):
                 active_tank.move(Direct.LEFT)
                 sleep(0.02)
-                land.render()
-                tank1.render()
-                tank2.render()
-                draw_hud(screen)
-                pygame.display.flip()
+                render_all()
             sleep(0.1)
         elif pressed_list[pygame.K_RIGHT]:
             sock.send(str(actions.MOVE_RIGHT.value).encode('utf8'))
             for i in range(0, 30):
                 active_tank.move(Direct.RIGHT)
                 sleep(0.02)
-                land.render()
-                tank1.render()
-                tank2.render()
-                draw_hud(screen)
-                pygame.display.flip()
+                render_all()
             sleep(0.1)
 
         elif pressed_list[pygame.K_SPACE]:
@@ -205,8 +207,12 @@ while go:
             pass
         elif actions(pack) == actions.ANGLE_UP:
             active_tank.angle += 1
+            if active_tank.angle == 361:
+                active_tank.angle = 1
         elif actions(pack) == actions.ANGLE_DOWN:
             active_tank.angle -= 1
+            if active_tank.angle == -1:
+                active_tank.angle = 359
         elif actions(pack) == actions.POWER_UP:
             active_tank.power += 1
         elif actions(pack) == actions.POWER_DOWN:
@@ -220,20 +226,12 @@ while go:
             for i in range(0, 30):
                 active_tank.move(Direct.LEFT)
                 sleep(0.02)
-                land.render()
-                tank1.render()
-                tank2.render()
-                draw_hud(screen)
-                pygame.display.flip()
+                render_all()
         elif actions(pack) == actions.MOVE_RIGHT:
             for i in range(0, 30):
                 active_tank.move(Direct.RIGHT)
                 sleep(0.02)
-                land.render()
-                tank1.render()
-                tank2.render()
-                draw_hud(screen)
-                pygame.display.flip()
+                render_all()
 
 '''
 resX = 800
