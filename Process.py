@@ -1,6 +1,6 @@
 import pygame
 from Landscape import Land
-from weapons.Shell import Shell
+from weapons.Shell import Shel
 from Tank import Tank, Direct
 from Net import Server, Client
 import ast
@@ -41,7 +41,8 @@ def make_connections():
 
 
 sock, conn_type = make_connections()
-shell = Shell()
+
+shell = Shel()
 weapons = [shell]
 
 
@@ -135,7 +136,13 @@ def render_all():
     tank1.render()
     tank2.render()
     draw_hud(screen)
+    weapon = active_tank.weapon_list.pop(0)
+    if weapon.push:
+        weapon.shoot(active_tank.power, active_tank.angle, active_tank)
+        weapon.render(screen, weapon.x, weapon.y)
+
     pygame.display.flip()
+
 
 
 while go:
@@ -196,7 +203,14 @@ while go:
             sleep(0.1)
 
         elif pressed_list[pygame.K_SPACE]:
-            active_tank.weapon_list.pop(0)
+            sock.send(str(actions.SHOOT.value).encode('utf8'))
+            weapon = active_tank.weapon_list.pop(0)
+            weapon.push = True
+            weapon.x = active_tank.x
+            weapon.y = active_tank.y
+            weapon.render(screen, weapon.x, weapon.y)
+
+
 
     else:
         try:

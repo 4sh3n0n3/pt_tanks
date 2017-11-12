@@ -3,7 +3,7 @@ import math
 from weapons.IWeapon import Weapon
 
 #снаряд
-class Shell(Weapon):
+class Shel(Weapon):
     DAMAGE = 10
 
 
