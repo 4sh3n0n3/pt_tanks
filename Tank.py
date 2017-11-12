@@ -1,5 +1,7 @@
 import pygame
-import math as m
+import math
+
+from weapons.Shell import Shell
 
 
 class Tank:
@@ -14,15 +16,27 @@ class Tank:
         self.power = 50
         self.hitbox = (self.x-5, self.y-3, 10, 6)
         self.land = land
+        self.tube_x = 15 * math.cos(math.radians(self.angle))
+        self.tube_y = - 15 * math.sin(math.radians(self.angle))
+
+    def shoot(self, power, angle, screen):
+        weapon = Shell(1, 300)
+        weapon.push = True
+
+
+        while weapon.push:
+            weapon.shoot(power, angle)
+            weapon.render(screen)
+            pygame.display.flip()
 
     def render(self, x, y):
-        tube_x = 15 * m.cos(m.radians(self.angle))
-        tube_y = - 15 * m.sin(m.radians(self.angle))
+        tube_x = 15 * math.cos(math.radians(self.angle))
+        tube_y = - 15 * math.sin(math.radians(self.angle))
         # tube_x, tube_y = rotate_coords(x=8, cos=m.cos(m.radians(self.angle)), sin=m.sin(m.radians(self.angle)))
 
         land_left, land_right = self.land.road_map.get(x-7), self.land.road_map.get(x+7)
 
-        gip_len = m.sqrt((land_right[0]-land_left[0])**2+(land_right[1]-land_left[1])**2)
+        gip_len = math.sqrt((land_right[0]-land_left[0])**2+(land_right[1]-land_left[1])**2)
         box_cos = (land_left[1]-land_right[1])/gip_len
         box_sin = 14/gip_len
 
