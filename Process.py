@@ -41,7 +41,8 @@ def make_connections():
 
 
 sock, conn_type = make_connections()
-weapons = []
+shell = Shell()
+weapons = [shell]
 
 
 def start_as_host():
@@ -191,6 +192,10 @@ while go:
                 draw_hud(screen)
                 pygame.display.flip()
             sleep(0.1)
+
+        elif pressed_list[pygame.K_SPACE]:
+            active_tank.weapon_list.pop(0)
+
     else:
         try:
             pack = int(sock.recv(1).decode('utf8'))
