@@ -14,6 +14,7 @@ class Server:
         s.listen(1)
         print("ожидаем подключения")
         conn, addr = s.accept()
+        conn.setblocking(0)
         print("подключение установлено")
         return conn
 

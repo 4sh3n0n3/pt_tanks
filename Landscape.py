@@ -7,7 +7,7 @@ class Land:
         self.screen = screen
         self.color = color
         self.box_x = box_x
-        self.box_y = box_y
+        self.box_y = box_y-box_y//10
         self.road_map = generate_landscape(box_x, box_y)
 
     def render(self):
