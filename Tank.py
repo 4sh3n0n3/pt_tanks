@@ -15,7 +15,8 @@ class Tank:
         self.x = 0
         self.y = 0
         self.weapon_list = weapon_list
-        self.points = 0
+        self.selected_gun = 0
+        self.points = 100
         self.angle = 0
         self.power = 50
         self.hitbox = (self.x-5, self.y-3, 10, 6)
@@ -49,8 +50,6 @@ class Tank:
         box_cos = (land_left[1]-land_right[1])/gip_len
         box_sin = 14/gip_len
 
-        # Заглушка. Здесь будет реализована физика равноускоренного падения
-        # (передавать какой-нибудь аргумент power для обработки)
         if self.land.road_map.get(self.x)[1] > self.y+5:
             self.y = self.y + 2
 
@@ -89,10 +88,12 @@ pygame.display.init()
 color = (100, 60, 60)
 screen = pygame.display.set_mode((resX, resY))
 tanka = Tank(screen, color)
+
 while go:
     tanka.render(400, 300)
     pygame.display.flip()
     pygame.event.pump()
+
     pressed_list = pygame.key.get_pressed()
     if pressed_list[pygame.K_ESCAPE]:
         go = False
