@@ -29,13 +29,13 @@ def generate_landscape(max_x, max_y):
     # Генерация горы
     for x in range(max_x//3, 2*max_x//3):
         if x < max_x//2:
-            mapping[x][1] = mapping[x][1] - random.randrange(x//5, x//2)
+            mapping[x][1] = mapping[x][1] - random.randrange(x//5, x//3)
         if x > max_x//2:
             if random.randrange(0, 2) == 0:
                 val = mapping[max_x - x][1]
             else:
                 val = mapping[x][1]
-            mapping[x][1] = val - random.randrange((max_x - x)//5, (max_x - x)//2)
+            mapping[x][1] = val - random.randrange((max_x - x)//5, (max_x - x)//3)
 
     # Снижение резкости
     for x in range(0, max_x):
