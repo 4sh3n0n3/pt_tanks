@@ -1,14 +1,10 @@
 import pygame
-from Landscape import Land
-from Tank import Tank, Direct
 from Net import Server, Client
-import ast
-from Player import Player
 import socket
 from time import sleep
-from weapons.Shell import Shell
 from enum import Enum
-import enum
+from Render import Render
+import Ivent
 
 
 class actions(Enum):
@@ -27,275 +23,150 @@ def make_connections():
     choose = input("Пожалуйста, выберите режим, host или guest: ")
     if choose == "host":
         port = input("Выберите порт подключения (оставьте пустым для дефолтного): ")
-        sock = Server(port).make_socket()
-        return sock, choose
+        socket = Server(port).make_socket()
+        return socket, choose
 
     elif choose == "guest":
         host = input("Введите адрес подключения (оставьте пустым для localhost): ")
         port = input("Выберите порт подключения (оставьте пустым для дефолтного): ")
-        sock = Client(host, port).make_socket()
-        return sock, choose
+        socket = Client(host, port).make_socket()
+        return socket, choose
 
 
 sock, conn_type = make_connections()
-shell_1 = Shell()
-shell_2 = Shell()
-shell_3 = Shell()
-weapons_1 = [shell_1, shell_2, shell_3]
-weapons_2 = [shell_1, shell_2, shell_3]
-
-
-def start_as_host():
-    resX = 800
-    resY = 600
-    pygame.display.init()
-    pygame.font.init()
-    screen = pygame.display.set_mode((resX, resY))
-    pygame.display.set_caption("HOST")
-    color_t1 = (100, 60, 60)
-    color_t2 = (60, 100, 100)
-    color_l = (80, 180, 10)
-    land = Land(screen, color_l, resX, resY)
-    tank1 = Tank(screen, color_t1, land=land, weapon_list=weapons_1)
-    tank2 = Tank(screen, color_t2, land=land, weapon_list=weapons_2)
-    tank2.angle = 180
-    sock.send((str(resX) + ";" + str(resY) + ";" + str(land.color) + ";" + str(land.road_map) + ";" +
-               str(color_t1) + ";" + str(color_t2) + "$").encode('utf8'))
-    player = Player(tank1)
-    return player, land, tank1, tank2, screen
-
-
-def start_as_guest():
-    data = ""
-    while True:
-        pack = sock.recv(1024).decode('utf8')
-        data += pack
-        if "$" in pack:
-            break
-    data = data.replace("$", "").split(";")
-    pygame.display.init()
-    pygame.font.init()
-    resX = int(data[0].replace('\'(', '').replace('\')', ''))
-    resY = int(data[1].replace('\'(', '').replace('\')', ''))
-    color_l = ast.literal_eval(data[2])
-    color_t1 = ast.literal_eval(data[4])
-    color_t2 = ast.literal_eval(data[5])
-    screen = pygame.display.set_mode((resX, resY))
-    pygame.display.set_caption("GUEST")
-    point_dict = ast.literal_eval(data[3])
-    land = Land(screen, color_l, resX, resY)
-    land.road_map = point_dict
-    tank1 = Tank(screen, color_t1, land=land, weapon_list=weapons_1)
-    tank2 = Tank(screen, color_t2, land=land, weapon_list=weapons_2)
-    tank2.angle = 180
-    player = Player(tank2)
-    return player, land, tank1, tank2, screen
 
 
 if conn_type == "host":
-    player, land, tank1, tank2, screen = start_as_host()
+    self_player, enemy_player = Ivent.start_as_host(sock)
+    active_player = self_player
+    renderer = Render(self_player, enemy_player)
 else:
-    player, land, tank1, tank2, screen = start_as_guest()
+    enemy_player, self_player = Ivent.start_as_guest(sock)
+    active_player = enemy_player
+    renderer = Render(enemy_player, self_player)
 
-tank1.x, tank1.y = land.box_x // 8, land.box_y // 6
-tank2.x, tank2.y = land.box_x // 8 * 7, land.box_y // 6
 
-active_tank = tank1
+Ivent.init(renderer)
+active_player.tank.x, active_player.tank.y = active_player.land.box_x // 8, active_player.land.box_y // 6
+active_player.enemy.x, active_player.enemy.y = active_player.land.box_x // 8 * 7, active_player.land.box_y // 6
 go = True
 
 
-def draw_hud(screen):
-    font = pygame.font.Font('freesansbold.ttf', 30)
-    surf_1 = font.render(str(tank1.points), True, (255, 255, 255))
-    surf_1_rect = surf_1.get_rect()
-    surf_1_rect.center = (land.box_x // 18, land.box_y // 12)
-    screen.blit(surf_1, surf_1_rect)
-
-    surf_2 = font.render(str(tank2.points), True, (255, 255, 255))
-    surf_2_rect = surf_2.get_rect()
-    surf_2_rect.center = (land.box_x // 18 * 17, land.box_y // 12)
-    screen.blit(surf_2, surf_2_rect)
-
-    if player.tank == active_tank:
-        own = "Your"
-    else:
-        own = "Opponent's"
-
-    font = pygame.font.Font('freesansbold.ttf', 20)
-    surf_3 = font.render(own + " >> ANGLE : " + str(active_tank.angle) + ", " +
-                         "POWER : " + str(active_tank.power) + ", " +
-                         "MOVE POINTS LEFT : " + str(active_tank.move_limit), True, (255, 255, 255))
-    surf_3_rect = surf_3.get_rect()
-    surf_3_rect.center = (land.box_x // 2, land.box_y // 40 * 44)
-    screen.blit(surf_3, surf_3_rect)
-
-
-def render_all():
-    land.render()
-    tank1.render()
-    tank2.render()
-    draw_hud(screen)
-    pygame.display.flip()
-
-
-def collision_detection(ob_x, ob_y):
-    if ob_y < land.road_map.get(int(ob_x))[1] and 0 < ob_x < land.box_x:
-        return True
-    else:
-        return False
-
-
 while go:
-    render_all()
+    if self_player == active_player:
+        isActive = True
+    else:
+        isActive = False
+
+    renderer.render_all(self_player, isActive)
     pygame.event.pump()
     sock.setblocking(0)
     pressed_list = pygame.key.get_pressed()
+
     if pressed_list[pygame.K_ESCAPE]:
         go = False
 
-    if player.tank == active_tank:
+    if self_player == active_player:
         if pressed_list[pygame.K_w]:
-            active_tank.angle += 1
-            if active_tank.angle == 361:
-                active_tank.angle = 1
+            Ivent.angle_up(active_player)
             sock.send(str(actions.ANGLE_UP.value).encode('utf8'))
             sleep(0.05)
 
         elif pressed_list[pygame.K_s]:
-            active_tank.angle -= 1
-            if active_tank.angle == -1:
-                active_tank.angle = 359
+            Ivent.angle_down(active_player)
             sock.send(str(actions.ANGLE_DOWN.value).encode('utf8'))
             sleep(0.05)
 
         elif pressed_list[pygame.K_a]:
-            if active_tank.power < 100:
-                active_tank.power += 1
-                sock.send(str(actions.POWER_UP.value).encode('utf8'))
-                sleep(0.05)
+            Ivent.power_up(active_player)
+            sock.send(str(actions.POWER_UP.value).encode('utf8'))
+            sleep(0.1)
 
         elif pressed_list[pygame.K_d]:
-            if active_tank.power > 0:
-                active_tank.power -= 1
-                sock.send(str(actions.POWER_DOWN.value).encode('utf8'))
-                sleep(0.05)
+            Ivent.power_down(active_player)
+            sock.send(str(actions.POWER_DOWN.value).encode('utf8'))
+            sleep(0.05)
 
         elif pressed_list[pygame.K_SPACE]:
-            if len(active_tank.weapon_list) == 0:
-                go = False
             sock.send(str(actions.SHOOT.value).encode('utf8'))
-            weapon = active_tank.weapon_list.pop(active_tank.selected_gun)
-            x, y = weapon.shoot(active_tank.power, active_tank.angle, active_tank, screen)
-            pygame.display.flip()
-            while collision_detection(x, y):
-                x, y = weapon.shoot(active_tank.power, active_tank.angle, active_tank, screen)
-                pygame.display.flip()
-                render_all()
-            weapon.boom(screen, tank1, tank2)
-            pygame.display.flip()
-            sleep(3)
-            render_all()
-            if active_tank == tank1:
-                active_tank = tank2
-            else:
-                active_tank = tank1
+            if not active_player.tank.weapon_list:
+                break
+            Ivent.shoot(active_player, self_player)
+
+            active_player = enemy_player
             sleep(0.1)
 
         elif pressed_list[pygame.K_UP]:
-            if active_tank.selected_gun < len(active_tank.weapon_list) - 1:
-                active_tank.selected_gun += 1
-            else:
-                active_tank.selected_gun = 0
+            Ivent.switch_gun_up(active_player)
             sleep(0.1)
             sock.send(str(actions.NEXT_GUN.value).encode('utf8'))
 
         elif pressed_list[pygame.K_DOWN]:
-            if active_tank.selected_gun > 0:
-                active_tank.selected_gun -= 1
-            else:
-                active_tank.selected_gun = len(active_tank.weapon_list) - 1
+            Ivent.angle_down(active_player)
             sleep(0.1)
             sock.send(str(actions.PREV_GUN.value).encode('utf8'))
 
         elif pressed_list[pygame.K_LEFT]:
             sock.send(str(actions.MOVE_LEFT.value).encode('utf8'))
-            for i in range(0, 30):
-                active_tank.move(Direct.LEFT)
-                sleep(0.02)
-                render_all()
+            Ivent.move_left(active_player, self_player)
             sleep(0.1)
 
         elif pressed_list[pygame.K_RIGHT]:
             sock.send(str(actions.MOVE_RIGHT.value).encode('utf8'))
-            for i in range(0, 30):
-                active_tank.move(Direct.RIGHT)
-                sleep(0.02)
-                render_all()
+            Ivent.move_right(active_player, self_player)
             sleep(0.1)
     else:
         try:
-            pack = int(sock.recv(1).decode('utf8'))
+            pack = sock.recv(1).decode('utf8')
+            if pack != '':
+                pack = int(pack)
         except socket.error:
             pack = ''
+
         if pack == '':
             pass
 
         elif actions(pack) == actions.ANGLE_UP:
-            active_tank.angle += 1
-            if active_tank.angle == 361:
-                active_tank.angle = 1
+            Ivent.angle_up(active_player)
 
         elif actions(pack) == actions.ANGLE_DOWN:
-            active_tank.angle -= 1
-            if active_tank.angle == -1:
-                active_tank.angle = 359
+            Ivent.angle_down(active_player)
 
         elif actions(pack) == actions.POWER_UP:
-            active_tank.power += 1
+            Ivent.power_up(active_player)
 
         elif actions(pack) == actions.POWER_DOWN:
-            active_tank.power -= 1
+            Ivent.angle_down(active_player)
 
         elif actions(pack) == actions.SHOOT:
-            weapon = active_tank.weapon_list.pop(active_tank.selected_gun)
-            x, y = weapon.shoot(active_tank.power, active_tank.angle, active_tank, screen)
-            while collision_detection(x, y):
-                x, y = weapon.shoot(active_tank.power, active_tank.angle, active_tank, screen)
-                pygame.display.flip()
-                render_all()
-            weapon.boom(screen, tank1, tank2)
-            pygame.display.flip()
-            sleep(3)
-            render_all()
+            if not active_player.tank.weapon_list:
+                break
+            Ivent.shoot(active_player, self_player)
 
-            if active_tank == tank1:
-                active_tank = tank2
-            else:
-                active_tank = tank1
+            active_player = self_player
 
         elif actions(pack) == actions.NEXT_GUN:
-            if active_tank.selected_gun < len(active_tank.weapon_list) - 1:
-                active_tank.selected_gun += 1
-            else:
-                active_tank.selected_gun = 0
+            Ivent.switch_gun_up(active_player)
 
         elif actions(pack) == actions.PREV_GUN:
-            if active_tank.selected_gun > 0:
-                active_tank.selected_gun -= 1
-            else:
-                active_tank.selected_gun = len(active_tank.weapon_list) - 1
+            Ivent.switch_gun_down(active_player)
 
         elif actions(pack) == actions.MOVE_LEFT:
-            for i in range(0, 30):
-                active_tank.move(Direct.LEFT)
-                sleep(0.02)
-                render_all()
+            Ivent.move_left(active_player, self_player)
 
         elif actions(pack) == actions.MOVE_RIGHT:
-            for i in range(0, 30):
-                active_tank.move(Direct.RIGHT)
-                sleep(0.02)
-                render_all()
+            Ivent.move_right(active_player, self_player)
+
+sock.close()
+if self_player.tank.points > self_player.enemy.points:
+    renderer.endgame(self_player, "You win!")
+    sleep(2)
+elif self_player.tank.points < self_player.enemy.points:
+    renderer.endgame(self_player, "You lose!")
+    sleep(2)
+else:
+    renderer.endgame(self_player, "Dead heat")
+    sleep(2)
 
 '''
 resX = 800

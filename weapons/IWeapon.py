@@ -10,6 +10,9 @@ class Weapon(object):
     @abstractmethod
     def shoot(self, power, angle, tank, screen): pass
 
+    @abstractmethod
+    def collision_detection(self, player): pass
+
     #разрыв снарядаpno
     @abstractmethod
     def animation(self): pass
